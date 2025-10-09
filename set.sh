@@ -394,7 +394,7 @@ show_logs() {
         docker compose -f "$COMPOSE_FILE" logs -f n8n
     else
         echo "Error: docker-compose.yml not found. Run 'start' first."
-    }
+    fi # <-- FIXED SYNTAX ERROR HERE
 }
 
 # --- 3. MAIN EXECUTION ---
