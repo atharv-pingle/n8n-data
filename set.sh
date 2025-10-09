@@ -385,7 +385,7 @@ stop_deployment() {
         echo "N8N container stopped and removed."
     else
         echo "No docker-compose.yml file found. Skipping Docker stop."
-    }
+    fi
 }
 
 show_logs() {
@@ -394,7 +394,7 @@ show_logs() {
         docker compose -f "$COMPOSE_FILE" logs -f n8n
     else
         echo "Error: docker-compose.yml not found. Run 'start' first."
-    fi
+    }
 }
 
 # --- 3. MAIN EXECUTION ---
