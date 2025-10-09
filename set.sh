@@ -4,7 +4,7 @@
 # MERGED SCRIPT: N8N Deployment with Pre-populated Data Download
 # This script performs the following steps:
 # 1. Installs Docker, Ngrok, Python (for venv), and Unzip dependencies.
-# 2. PROMPTS THE USER for the Google Drive URL and extracts the File ID.
+# 2. Checks for local File ID in .gdrive; prompts user for URL if not found.
 # 3. Creates a Python virtual environment to install 'gdown'.
 # 4. Downloads the n8n persistent data archive from Google Drive using gdown.
 # 5. Extracts the data into the ./n8n-data host directory.
@@ -27,9 +27,10 @@ NGROK_AUTHTOKEN_DEFAULT="32yZKrCoakK6KQGYVRkr03xyWKE_7CrbLZxxJTqDuPUDNhU9R"
 # Persistent Data Path
 N8N_DATA_HOST_PATH_DEFAULT="./n8n-data"
 
-# Configuration for GDrive Download (Script 1 integration)
+# Configuration for GDrive Download
 # FILE_ID will be set dynamically by get_gdrive_info()
 FILE_ID=""
+FILE_ID_SOURCE=".gdrive" # The file in the repo containing the GDrive File ID
 FILENAME="n8n-data.zip"
 VENV_NAME="gdrive_env" # Virtual environment for gdown
 
@@ -45,12 +46,28 @@ usage() {
     exit 1
 }
 
-# --- GET GOOGLE DRIVE URL AND EXTRACT FILE ID ---
+# --- GET GOOGLE DRIVE URL AND EXTRACT FILE ID (MODIFIED) ---
 get_gdrive_info() {
     echo ""
     echo "--- 🔑 Google Drive Data URL Input ---"
-    
-    # Only prompt if FILE_ID is not already set
+
+    # --- NEW LOGIC: CHECK FOR LOCAL FILE ID FIRST ---
+    if [ -f "$FILE_ID_SOURCE" ]; then
+        # Read file ID, remove any surrounding whitespace (newlines, spaces)
+        LOCAL_ID=$(cat "$FILE_ID_SOURCE" | tr -d '[:space:]')
+        if [ -n "$LOCAL_ID" ]; then
+            FILE_ID="$LOCAL_ID"
+            echo "✅ Found File ID in local file '$FILE_ID_SOURCE'. Using ID: ${FILE_ID}"
+            return 0 # Exit function successfully, no manual prompt needed
+        else
+            echo "⚠️ Warning: Local file '$FILE_ID_SOURCE' is empty. Falling back to manual URL input."
+        fi
+    else
+        echo "⚠️ Info: Local file '$FILE_ID_SOURCE' not found. Falling back to manual URL input."
+    fi
+    # --- END NEW LOGIC ---
+
+    # Only prompt if FILE_ID is still empty after the local file check
     if [ -z "$FILE_ID" ]; then
         read -p "Please paste the Google Drive URL for the n8n data zip (e.g., https://drive.google.com/file/d/FILE_ID/view...): " GDRIVE_URL
         
@@ -292,7 +309,7 @@ download_n8n_data() {
 # --- DEPLOYMENT AND MANAGEMENT FUNCTIONS ---
 
 deploy() {
-    # 1. Prompt user for Google Drive URL and extract the File ID
+    # 1. Get Google Drive File ID (checks local file first)
     get_gdrive_info
     
     # 2. Install Dependencies (Docker, Ngrok, Python, Unzip)
@@ -368,7 +385,7 @@ stop_deployment() {
         echo "N8N container stopped and removed."
     else
         echo "No docker-compose.yml file found. Skipping Docker stop."
-    fi
+    }
 }
 
 show_logs() {
