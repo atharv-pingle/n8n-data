@@ -1,0 +1,2 @@
+https://drive.google.com/file/d/1ehSokqDM8C4lZPqdIhVwejm2_LqtC_kJ/view?usp=sharing
+rsync -avz -e "ssh -i ~/.ssh/ubuntu" ubuntu@***IP***:/home/ubuntu/n8n-data/ "/mnt/c/Users/athar/Desktop/Devops 2025/n8n backups/n8n-data"
