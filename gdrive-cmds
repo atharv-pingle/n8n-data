@@ -1,3 +1,3 @@
 https://drive.google.com/file/d/1s24XptGvlBeLlv1xA2B2tK5aLk_vWhpE/view?usp=sharing
 
-rsync -avz -e "ssh -i ~/.ssh/ubuntu" ubuntu@------:/home/ubuntu/n8n-data/ "/mnt/c/Users/athar/Desktop/Devops 2025/n8n backups/n8n-data"
+rsync -avz -e "ssh -i ~/.ssh/ubuntu" ubuntu@------:/home/ubuntu/n8n-files/n8n-data/ "/mnt/c/Users/athar/Desktop/Devops 2025/n8n backups/n8n-data"
