@@ -5,7 +5,6 @@
 Run this command on your **Ubuntu server** (with sudo privileges) to install Git, clone the repository, and start the n8n service.
 
 ```bash
-# Run as a user with sudo privileges
 sudo apt update && sudo apt install -y git && rm -rf n8n-files && \
 git clone https://github.com/atharv-pingle/n8n-files.git && \
 cd n8n-files && sudo bash set2.sh start
@@ -24,8 +23,7 @@ Use this command to **back up your n8n data** from the server to your **Windows 
 > * Run this from your **Windows WSL terminal**.
 
 ```bash
-# Run from local Windows WSL terminal
-rsync -avz -e "ssh -i ~/.ssh/ubuntu" ubuntu@------:/home/ubuntu/n8n-files/n8n-data/ \
+rsync -avz -e "ssh -i ~/.ssh/ubuntu" ubuntu@<your-ip>:/home/ubuntu/n8n-files/n8n-data/ \
 "/mnt/c/Users/athar/Desktop/Devops 2025/n8n backups/n8n-data"
 ```
 
