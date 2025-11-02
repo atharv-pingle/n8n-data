@@ -15,6 +15,7 @@ N8N_INTERNAL_PORT="5678" # N8N container runs on 5678 internally
 # Checks are now INSIDE the functions that need them.
 STATIC_NGROK_DOMAIN="${ENV_NGROK_DOMAIN}"
 NGROK_AUTHTOKEN_DEFAULT="${ENV_NGROK_TOKEN}"
+ENV_GDRIVE_URL="${ENV_GDRIVE_URL}" # Added this to global scope
 
 # Persistent Data Path
 N8N_DATA_HOST_PATH_DEFAULT="./n8n-data"
@@ -115,7 +116,7 @@ install_dependencies() {
 
     echo ""
     echo "--- Installing System Dependencies (Docker, Ngrok, Python/Venv, Unzip, Git) ---"
-    sudo apt update > /dev/null 2&1
+    sudo apt update > /dev/null 2>&1
     echo "✅ System packages updated."
 
     echo "Installing essential packages..."
@@ -294,7 +295,12 @@ deploy() {
         sudo pkill ngrok || true
         sleep 1 
 
-        NGROK_HOSTNAME="${STATIC_NGROK_DOMAIN#https://}"
+        # --- ‼️ PERMANENT FIX ‼️ ---
+        # Strip https:// from the front AND any trailing / from the domain
+        HOSTNAME_TEMP="${STATIC_NGROK_DOMAIN#https://}"
+        NGROK_HOSTNAME="${HOSTNAME_TEMP%/}" # This removes the trailing /
+        # --- END FIX ---
+        
         NGROK_CMD="sudo ngrok http --domain=${NGROK_HOSTNAME} ${N8N_INTERNAL_PORT}"
         echo "Executing: $NGROK_CMD &"
         $NGROK_CMD &
