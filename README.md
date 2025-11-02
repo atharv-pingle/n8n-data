@@ -1,0 +1,4 @@
+n8n-files Deployment🚀 One-Line Deployment (Ubuntu Server)Run this command on your server to install git, clone the repo, and start the n8n service.# This command must be run as a user with sudo privileges
+sudo apt update && sudo apt install -y git && rm -rf n8n-files && git clone [https://github.com/atharv-pingle/n8n-files.git](https://github.com/atharv-pingle/n8n-files.git) && cd n8n-files && sudo bash set2.sh start
+💾 Backup Data (Server to Local Windows)Run this command from your local WSL terminal to copy the server's n8n-data to your Windows PC.Note: Replace ~/.ssh/ubuntu with your key path and ------ with your server's IP.# Run this from your local Windows WSL terminal
+rsync -avz -e "ssh -i ~/.ssh/ubuntu" ubuntu@------:/home/ubuntu/n8n-files/n8n-data/ "/mnt/c/Users/athar/Desktop/Devops 2025/n8n backups/n8n-data"
