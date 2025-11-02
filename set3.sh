@@ -10,32 +10,11 @@ COMPOSE_FILE="docker-compose.yml"
 ENV_FILE=".env"
 N8N_INTERNAL_PORT="5678" # N8N container runs on 5678 internally
 
-# ====================================================================
-# 🔒 SECURE CONFIGURATION
-# The script now reads your secrets from environment variables.
-# These MUST be set before running the script using 'export' and 'sudo -E'.
-# ====================================================================
-
-# Read the domain from an environment variable passed at runtime
+# --- 🔒 SECURE CONFIGURATION ---
+# Variables will be read from the environment.
+# Checks are now INSIDE the functions that need them.
 STATIC_NGROK_DOMAIN="${ENV_NGROK_DOMAIN}"
-if [ -z "$STATIC_NGROK_DOMAIN" ]; then
-  echo "❌ Error: ENV_NGROK_DOMAIN is not set." >&2
-  exit 1
-fi
-
-# Read the token from an environment variable passed at runtime
 NGROK_AUTHTOKEN_DEFAULT="${ENV_NGROK_TOKEN}"
-if [ -z "$NGROK_AUTHTOKEN_DEFAULT" ]; then
-  echo "❌ Error: ENV_NGROK_TOKEN is not set." >&2
-  exit 1
-fi
-
-# Read the GDrive URL from an environment variable passed at runtime
-ENV_GDRIVE_URL="${ENV_GDRIVE_URL}"
-if [ -z "$ENV_GDRIVE_URL" ]; then
-  echo "❌ Error: ENV_GDRIVE_URL is not set." >&2
-  exit 1
-fi
 
 # Persistent Data Path
 N8N_DATA_HOST_PATH_DEFAULT="./n8n-data"
@@ -57,12 +36,14 @@ usage() {
     exit 1
 }
 
-# --- GET GOOGLE DRIVE URL FUNCTION (REMOVED) ---
-# This is no longer needed as the URL is passed via environment variable.
-
-
 # --- SETUP ENVIRONMENT FILE (.env) ---
 setup_env() {
+    # Check for variables
+    if [ -z "$STATIC_NGROK_DOMAIN" ] || [ -z "$NGROK_AUTHTOKEN_DEFAULT" ]; then
+       echo "❌ Error: 'setup' command requires ENV_NGROK_DOMAIN and ENV_NGROK_TOKEN." >&2
+       exit 1
+    fi
+    
     echo "--- Initial Setup: Creating $ENV_FILE ---"
 
     cat <<EOF > "$ENV_FILE"
@@ -126,9 +107,15 @@ EOF
 
 # --- INSTALL DOCKER, NGROK, AND PYTHON BASE DEPENDENCIES ---
 install_dependencies() {
+    # Check for variables
+    if [ -z "$NGROK_AUTHTOKEN_DEFAULT" ]; then
+      echo "❌ Error: ENV_NGROK_TOKEN is not set. Cannot configure Ngrok." >&2
+      exit 1
+    fi
+
     echo ""
     echo "--- Installing System Dependencies (Docker, Ngrok, Python/Venv, Unzip, Git) ---"
-    sudo apt update > /dev/null 2>&1
+    sudo apt update > /dev/null 2&1
     echo "✅ System packages updated."
 
     echo "Installing essential packages..."
@@ -176,7 +163,13 @@ download_n8n_data() {
     echo ""
     echo "--- 🔄 Starting N8N Persistent Data Preparation ---"
     
-    # --- NEW: Extract File ID from the environment variable ---
+    # Check for variable
+    if [ -z "$ENV_GDRIVE_URL" ]; then
+      echo "❌ Error: ENV_GDRIVE_URL is not set." >&2
+      exit 1
+    fi
+    
+    # Extract File ID from the environment variable
     FILE_ID=$(echo "$ENV_GDRIVE_URL" | awk -F'[/=]' '{
         for (i=1; i<=NF; i++) {
             if ($i == "d" && $(i+1) != "") { print $(i+1); exit }
@@ -190,7 +183,6 @@ download_n8n_data() {
         exit 1
     fi
     echo "✅ Extracted File ID: $FILE_ID"
-    # --- END NEW BLOCK ---
 
     # 1. Create and activate virtual environment for gdown
     if [ ! -d "$VENV_NAME" ]; then
@@ -208,7 +200,7 @@ download_n8n_data() {
     fi
     echo "✅ gdown is installed and ready."
 
-    # 3. Create host data directory if it doesn't exist
+    # 3. Create host data directory
     if [ ! -d "$N8N_DATA_HOST_PATH_DEFAULT" ]; then
         mkdir -p "$N8N_DATA_HOST_PATH_DEFAULT"
         echo "✅ Created persistent data directory: $N8N_DATA_HOST_PATH_DEFAULT"
@@ -228,7 +220,7 @@ download_n8n_data() {
     echo "✅ Download complete (File size: $(du -h "${FILENAME}" | awk '{print $1}'))."
     echo ""
 
-    # 5. Unzip the file into the host data path
+    # 5. Unzip the file
     echo "--- 📂 Unzipping ${FILENAME} to ${N8N_DATA_HOST_PATH_DEFAULT} ---"
     unzip -o "${FILENAME}" -d "$N8N_DATA_HOST_PATH_DEFAULT"
 
@@ -242,7 +234,7 @@ download_n8n_data() {
             echo "--- ⚠️ Nested directory detected! Fixing data path... ---"
             find "$NESTED_PATH" -mindepth 1 -maxdepth 1 -exec mv -t "$N8N_DATA_HOST_PATH_DEFAULT" {} +
             rmdir "$NESTED_PATH"
-            echo "✅ Data moved to the correct root path: ${N8S_DATA_HOST_PATH_DEFAULT}"
+            echo "✅ Data moved to the correct root path: ${N8N_DATA_HOST_PATH_DEFAULT}"
         fi
     fi
 
@@ -256,20 +248,25 @@ download_n8n_data() {
 # --- DEPLOYMENT AND MANAGEMENT FUNCTIONS ---
 
 deploy() {
-    # 1. Prompt user for Google Drive URL (REMOVED)
-    # This is now handled by the ENV_GDRIVE_URL variable.
+    # --- 🔒 Verifying Secrets for 'start' command ---
+    if [ -z "$STATIC_NGROK_DOMAIN" ] || [ -z "$NGROK_AUTHTOKEN_DEFAULT" ] || [ -z "$ENV_GDRIVE_URL" ]; then
+        echo "❌ Error: 'start' command requires ENV_NGROK_DOMAIN, ENV_NGROK_TOKEN, and ENV_GDRIVE_URL." >&2
+        echo "Please 'export' them before running 'sudo -E bash set3.sh start'" >&2
+        exit 1
+    fi
+    echo "✅ Secrets verified."
     
-    # 2. Install Dependencies (Docker, Ngrok, Python, Unzip, Git)
+    # 1. Install Dependencies
     install_dependencies
 
-    # 3. Setup config files (.env and docker-compose.yml)
+    # 2. Setup config files
     setup_env
     create_docker_compose
 
-    # 4. Download and populate N8N data directory
+    # 3. Download and populate N8N data
     download_n8n_data
 
-    # 5. Ensure correct ownership for the n8n container user (UID 1000)
+    # 4. Ensure correct ownership
     echo "--- Setting Permissions on Data Directory ---"
     if sudo chown -R 1000:1000 "$N8N_DATA_HOST_PATH_DEFAULT"; then
         echo "✅ Set correct ownership (1000:1000) for n8n persistence."
@@ -277,6 +274,7 @@ deploy() {
         echo "❌ WARNING: Failed to set ownership (chown) on $N8N_DATA_HOST_PATH_DEFAULT."
     fi
 
+    # 5. Start Deployment
     echo "--- Starting N8N Deployment ---"
     docker compose -f "$COMPOSE_FILE" down --remove-orphans > /dev/null 2>&1
     docker compose -f "$COMPOSE_FILE" pull 
@@ -288,7 +286,7 @@ deploy() {
         echo "🚀 STEP 1/2: N8N DOCKER DEPLOYMENT COMPLETED!"
         echo "N8N is running on your server's host port 5678."
         
-        # --- Start Ngrok Tunnel Automatically (Detached Mode) ---
+        # --- Start Ngrok Tunnel ---
         echo ""
         echo "--- Starting Ngrok Tunnel Automatically (Detached) ---"
         
@@ -352,6 +350,8 @@ case "$1" in
         ;;
 
     setup)
+        # This command also needs the variables, so we call setup_env
+        # which has the checks inside it.
         rm -f "$ENV_FILE" "$COMPOSE_FILE"
         setup_env
         create_docker_compose
