@@ -1,0 +1,5 @@
+https://drive.google.com/file/d/1s24XptGvlBeLlv1xA2B2tK5aLk_vWhpE/view?usp=sharing
+
+rm -rf n8n-files && git clone https://github.com/atharv-pingle/n8n-files.git && cd n8n-files && sudo bash set2.sh start
+
+rsync -avz -e "ssh -i ~/.ssh/ubuntu" ubuntu@------:/home/ubuntu/n8n-files/n8n-data/ "/mnt/c/Users/athar/Desktop/Devops 2025/n8n backups/n8n-data"
